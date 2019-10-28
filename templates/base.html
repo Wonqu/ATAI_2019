@@ -29,43 +29,54 @@
             ctx = canvas.getContext('2d'),
             img = new Image();
         img.src = "../static/entity.svg";
+        let boid_data = {
+            'boid': [
+                {'x': 100, 'y': 130, 'vx': 1212, 'vy': 3},
+                {'x': 400, 'y': 100, 'vx': 222, 'vy': 3},
+                {'x': 200, 'y': 122, 'vx': 1122, 'vy': 13},
+                {'x': 110, 'y': 140, 'vx': 2132, 'vy': 34},
+                {'x': 220, 'y': 100, 'vx': 11232, 'vy': 43},
+                {'x': 130, 'y': 180, 'vx': 2133, 'vy': 223},
+                {'x': 530, 'y': 780, 'vx': 2233, 'vy': 223},
+                {'x': 730, 'y': 380, 'vx': 2342, 'vy': 22312},
+                {'x': 830, 'y': 280, 'vx': 22131, 'vy': 221233},
+                {'x': 230, 'y': 580, 'vx': 21231, 'vy': 2233},
+                {'x': 230, 'y': 580, 'vx': 21231, 'vy': 2233},
+                {'x': 230, 'y': 580, 'vx': 21231, 'vy': 2223133},
+                {'x': 230, 'y': 580, 'vx': 21232311, 'vy': 2233},
+                {'x': 20, 'y': 580, 'vx': 21231, 'vy': 2233},
+                {'x': 150, 'y': 580, 'vx': 21231231, 'vy': 2233},
+                {'x': 530, 'y': 510, 'vx': 21231, 'vy': 2231233},
+                {'x': 250, 'y': 120, 'vx': 21223131, 'vy': 2233},
+                {'x': 290, 'y': 410, 'vx': 21231, 'vy': 2233},
+                {'x': 280, 'y': 170, 'vx': 21231231, 'vy': 2223133},
+                {'x': 220, 'y': 90, 'vx': 21231, 'vy': 2233},
+            ]
+        };
         let scale = 32;
         let i_w = 512/scale,
             i_h = 512/scale;
-        let boids = Array(50);
-        for(let i = 0; i < boids.length; i++){
-           boids[i] = {
-               'x': Math.random() * 400,
-               'y': Math.random() * 400,
-               'speed': Math.abs(Math.random() * 3),
-           };
-           boids[i]['angle'] = Math.atan2(boids[i]['y'], boids[i]['x']);
-        }
+        let xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function(){
+            if(this.readyState == 4 && this.status == 200){
+                boid_data = JSON.parse(this.responseText);
+                window.requestAnimationFrame(animate);
+                run();
+            }
+        };
         animate = function(){
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for(let i = 0; i < boids.length; i++){
-                let x = boids[i]['x'],
-                    y = boids[i]['y'],
-                    speed = boids[i]['speed'],
-                    angle = boids[i]['angle'];
-                angle = 180 / Math.PI * (Math.random() * 360);
-                x = x + speed*Math.cos(angle * 180 / Math.PI); //+ (Math.round(Math.random() * 100) - 200) / 100;
-                y = y + speed*Math.sin(angle * 180 / Math.PI); //+ (Math.round(Math.random() * 100) - 200) / 100;
-                if (x > 850 + i_w){
-                    x = x - 850 - i_w;
-                } else if (x < 0 - i_w){
-                    x = x + 850 + i_w;
-                }
-                if (y > 850 + i_h){
-                    y = y - 850 - i_h;
-                } else if (y < 0 - i_h){
-                    y = y + 850 + i_h;
-                }
-                angle = Math.atan2(y, x);
-                boids[i]['x'] = x;
-                boids[i]['y'] = y;
-                boids[i]['angle'] = angle;
-                boids[i]['speed'] = Math.abs(Math.random() * 3);
+            for(let i = 0; i < boid_data['boid'].length; i++){
+                let x = Math.max(0, Math.min(Math.abs(Math.round(boid_data['boid'][i]['x'])), 820)),
+                    y = Math.max(0, Math.min(Math.abs(Math.round(boid_data['boid'][i]['y'])), 820)),
+                    vx = Math.round(boid_data['boid'][i]['vx'] * 100) / 100,
+                    vy = Math.round(boid_data['boid'][i]['vy'] * 100) / 100,
+                    dx = vx - x,
+                    dy = vy - y,
+                    rad = Math.atan2(dy, dx),
+                    angle = rad * (180/Math.PI);
+                boid_data['boid'][i]['x'] = x;
+                boid_data['boid'][i]['y'] = y;
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.translate(i_w, i_h);
@@ -76,17 +87,13 @@
                 ctx.translate(-i_w, -i_h);
                 ctx.restore();
             }
-            requestAnimationFrame(animate);
         };
-        run = function(){
-            window.requestAnimationFrame(animate);
-        };
-        let fps = 1000/10; // 120 fps
 
-        loop = function() {
-            setTimeout(run, fps);
+        run = function() {
+            xhttp.open('POST', '/boids', true);
+            xhttp.send(JSON.stringify(boid_data));
         };
-        img.onload = loop;
+        img.onload = run;
 
     </script>
   </body>
