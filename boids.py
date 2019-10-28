@@ -140,7 +140,9 @@ def cohesion(boid_type, boid_data, max_dist):
 
 
 def move(boid, vec, speed):
-    return utils.sum_tuples(boid, (vec[0] * speed, vec[1] * speed))
+    vl = vec_len(*vec)
+    vec = tuple(a * speed / vl for a in vec)
+    return utils.sum_tuples(boid, vec)
 
 
 if __name__ == '__main__':
