@@ -1,148 +1,118 @@
-import math
-
-import utils
-
-
-def vec_len(x, y):
-    return math.sqrt(x**2 + y**2)
+import consts
+from utils import dist, xy, sum_vecs, norm_vec, mul_vec, vxy, overflow, dist_from_line, mul_vec_weight, vec
 
 
-def dist(x1, x2, y1, y2):
-    return math.sqrt(
-        abs((x1 - x2)**2 + (y1 - y2)**2)
+class Strategy:
+    pass
+
+
+def separation(weight, all_data, named_ranges, **params):
+    max_dist = params['max_dist']
+    target = params['target']
+    result_matrix = [
+        mul_vec(
+            norm_vec(
+                sum_vecs(*list(
+                    mul_vec_weight(v, d, max_dist, lambda d, m_d: (d/m_d) if d <= m_d else 0)
+                    for (d, v) in zip(d_vec, v_vec)
+                ))
+            ),
+            -weight
+        )
+        for pos, d_vec, _, v_vec in all_data[slice(*named_ranges[target])]
+    ]
+    return result_matrix
+
+
+def alignment(weight, all_data, named_ranges, **params):
+    max_dist = params['max_dist']
+    target = params['target']
+    result_matrix = [
+        mul_vec(
+            norm_vec(
+                sum_vecs(*list(
+                    mul_vec_weight(vxy(b_d), d, max_dist, lambda d, m_d: (d / m_d) if d <= m_d else 0)
+                    for (d, b_d) in zip(d_vec, [b_d[0] for b_d in all_data])
+                ))
+            ),
+            weight
+        )
+        for pos, d_vec, _, _ in all_data[slice(*named_ranges[target])]
+    ]
+    return result_matrix
+
+
+def cohesion(weight, all_data, named_ranges, **params):
+    max_dist = params['max_dist']
+    target = params['target']
+    result_matrix = [
+        mul_vec(
+            norm_vec(
+                sum_vecs(*list(
+                    mul_vec_weight(v, d, max_dist, lambda d, m_d: ((m_d - d) / m_d) if d <= m_d else 0)
+                    for (d, v) in zip(d_vec, v_vec)
+                ))
+            ),
+            weight
+        )
+        for pos, d_vec, _, v_vec in all_data[slice(*named_ranges[target])]
+    ]
+    return result_matrix
+
+
+def maintain(weight, all_data, named_ranges, **params):
+    target = params['target']
+    result_matrix = [
+        mul_vec(norm_vec(vxy(pos)), weight)
+        for pos, _, _, _ in all_data[slice(*named_ranges[target])]
+    ]
+    return result_matrix
+
+
+def obstacles(weight, all_data, named_ranges, **params):
+    max_dist = params['max_dist']
+    target = params['target']
+    result_matrix = []
+    for pos, _, o_vec, _ in all_data[slice(*named_ranges[target])]:
+        vecs = []
+        for (o_d, o_xc, o_yc, bounce) in o_vec:
+            vecs.append(
+                mul_vec_weight(
+                    vec((o_xc, o_yc), xy(pos)),
+                    o_d,
+                    max_dist,
+                    lambda d, m_d: (((m_d - d) / m_d) * bounce) if d <= m_d else 0
+                )
+            )
+        result_matrix.append(mul_vec(norm_vec(sum_vecs(*vecs)), weight))
+    return result_matrix
+
+
+def calculate_rule(all_data, named_ranges, **params):
+    params = params.copy()
+    rule_name = params.pop('rule')
+    rule_weight = params.pop('weight')
+    rule_functions = {
+        consts.RULE_ALIGNMENT: alignment,
+        consts.RULE_COHESION: cohesion,
+        consts.RULE_MAINTAIN: maintain,
+        consts.RULE_OBSTACLES: obstacles,
+        consts.RULE_SEPARATION: separation,
+    }
+    result_matrix = rule_functions[rule_name](rule_weight, all_data, named_ranges, **params)
+    return result_matrix
+
+
+def move(boid, dir_vec, speed, map_sizes, boid_size):
+    # normalize direction vector and multiply it by movement speed, then add it to boid's current position
+    return overflow(
+        sum_vecs(
+            boid,
+            mul_vec(norm_vec(dir_vec), speed),
+        ),
+        map_sizes,
+        boid_size,
     )
-
-
-def separation(boid_type, boid_data, max_dist):
-    boids = boid_data.get(boid_type, [])
-    location_dist_matrix = [
-        [
-            (
-                b2['x'] - b1['x'],
-                b2['y'] - b1['y'],
-                dist(b1['x'], b2['x'], b1['y'], b2['y']) / max_dist,
-            )
-            for b1 in boids
-        ]
-        for b2 in boids
-    ]
-    result_vector = [(0, 0, 0) for x in range(len(boids))]
-    for i, _ in enumerate(result_vector):
-        # sum local boids distance
-        result_vector[i] = (
-            sum(x for (x, _, w) in location_dist_matrix[i] if w <= 1),
-            sum(y for (_, y, w) in location_dist_matrix[i] if w <= 1),
-            sum(w for (_, _, w) in location_dist_matrix[i] if w <= 1),
-        )
-        if 1 > result_vector[i][2] <= 0:
-            vl = vec_len(boid_data[boid_type][i]['vx'], boid_data[boid_type][i]['vy'])
-            result_vector[i] = (
-                boid_data[boid_type][i]['vx'] / vl,
-                boid_data[boid_type][i]['vy'] / vl,
-            )
-            continue
-        # calculate destination as average vector of local boids
-        result_vector[i] = (
-            result_vector[i][0]/(result_vector[i][2] or 1),
-            result_vector[i][1]/(result_vector[i][2] or 1),
-        )
-        result_vector[i] = (
-            (result_vector[i][0] or boid_data[boid_type][i]['vx']),
-            (result_vector[i][1] or boid_data[boid_type][i]['vy']),
-        )
-        result_vector[i] = (
-            result_vector[i][0] / (vec_len(*result_vector[i]) or 1),
-            result_vector[i][1] / (vec_len(*result_vector[i]) or 1),
-        )
-    return result_vector
-
-
-def alignment(boid_type, boid_data, max_dist):
-    boids = boid_data.get(boid_type, [])
-    result_vector = [(0, 0, 0) for x in range(len(boids))]
-    destination_dist_matrix = [
-        [
-            (
-                b1['vx'] if b1 != b2 else 0,
-                b1['vy'] if b1 != b2 else 0,
-                dist(b1['x'], b2['x'], b1['y'], b2['y']) if b1 != b2 else float('inf')
-            )
-            for b1 in boids
-        ]
-        for b2 in boids
-    ]
-    for i, _ in enumerate(result_vector):
-        # sum local boids destinations
-        result_vector[i] = (
-            sum(vx for (vx, _, d) in destination_dist_matrix[i] if d <= max_dist),
-            sum(vy for (_, vy, d) in destination_dist_matrix[i] if d <= max_dist),
-            sum(1 for (_, _, d) in destination_dist_matrix[i] if d <= max_dist),
-        )
-        if 1 > result_vector[i][2] <= 0:
-            vl = vec_len(boid_data[boid_type][i]['vx'], boid_data[boid_type][i]['vy'])
-            result_vector[i] = (
-                boid_data[boid_type][i]['vx'] / vl,
-                boid_data[boid_type][i]['vy'] / vl,
-            )
-            continue
-        # calculate destination as average or other boids destination
-        result_vector[i] = (
-            result_vector[i][0] / (result_vector[i][2] or 1),
-            result_vector[i][1] / (result_vector[i][2] or 1),
-        )
-        # normalize destination vector
-        result_vector[i] = (
-            (result_vector[i][0] or boid_data[boid_type][i]['vx']) / (vec_len(*result_vector[i]) or 1),
-            (result_vector[i][1] or boid_data[boid_type][i]['vy']) / (vec_len(*result_vector[i]) or 1),
-        )
-    return result_vector
-
-
-def cohesion(boid_type, boid_data, max_dist):
-    boids = boid_data.get(boid_type, [])
-    result_vector = [(0, 0, 0) for x in range(len(boids))]
-    location_dist_matrix = [
-        [
-            (
-                b1['x'] - b2['x'],
-                b1['y'] - b2['y'],
-                dist(b1['x'], b2['x'], b1['y'], b2['y']) / max_dist,
-            )
-            for b1 in boids
-        ]
-        for b2 in boids
-    ]
-    for i, _ in enumerate(result_vector):
-        # sum local boids location
-        result_vector[i] = (
-            sum(x for (x, _, w) in location_dist_matrix[i] if w <= 1),
-            sum(y for (_, y, w) in location_dist_matrix[i] if w <= 1),
-            sum(w for (_, _, w) in location_dist_matrix[i] if w <= 1),
-        )
-        if 1 > result_vector[i][2] <= 0:
-            vl = vec_len(boid_data[boid_type][i]['vx'], boid_data[boid_type][i]['vy'])
-            result_vector[i] = (
-                boid_data[boid_type][i]['vx'] / vl,
-                boid_data[boid_type][i]['vy'] / vl,
-            )
-            continue
-        # calculate destination as average vector of local boids
-        result_vector[i] = (
-            result_vector[i][0] / (result_vector[i][2] or 1),
-            result_vector[i][1] / (result_vector[i][2] or 1),
-        )
-        # normalize destination vector
-        result_vector[i] = (
-            (result_vector[i][0] or boid_data[boid_type][i]['vx']) / (vec_len(*result_vector[i]) or 1),
-            (result_vector[i][1] or boid_data[boid_type][i]['vy']) / (vec_len(*result_vector[i]) or 1),
-        )
-    return result_vector
-
-
-def move(boid, vec, speed):
-    vl = vec_len(*vec)
-    vec = tuple(a * speed / vl for a in vec)
-    return utils.sum_tuples(boid, vec)
 
 
 if __name__ == '__main__':

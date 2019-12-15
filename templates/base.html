@@ -1,58 +1,121 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Flask Template Example</title>
+    <title>Dog, Sheep and Wolves</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style type="text/css">
       .container {
-        max-width: 900px;
-        height: 900px;
+        max-width: {{ ctx.MAP_X }}px;
+        height: {{ ctx.MAP_Y }}px;
         background: lightblue;
         text-align: center;
         margin-top: 25px;
       }
     </style>
+    <script src="https://unpkg.com/konva@4.0.0/konva.min.js"></script>
   </head>
   <body>
     <div class="container">
-      <canvas id="world"
-              width="850"
-              height="850"
+      <div id="world"
               style="
                 border:1px solid #000000;
-                margin-top: 25px;
+                {#margin-top: 25px;#}
               ">
-      </canvas>
+      </div>
     </div>
     <script>
-        let canvas = document.getElementById("world"),
-            ctx = canvas.getContext('2d'),
-            img = new Image();
-        img.src = "../static/entity.svg";
+        const POSITIONS = '{{ ctx.POSITIONS }}',
+            RULES = '{{ ctx.RULES }}',
+            OBSTACLES = '{{ ctx.OBSTACLES }}',
+
+            COLOR = '{{ ctx.COLOR }}',
+
+            BOIDS = '{{ ctx.BOIDS }}',
+            SHEEP = '{{ ctx.BOID_TYPES.SHEEP }}',
+            DOG = '{{ ctx.BOID_TYPES.DOG }}',
+            WOLF = '{{ ctx.BOID_TYPES.WOLF }}',
+
+            RULE_ALIGNMENT = '{{ ctx.RULE_TYPES.ALIGNMENT }}',
+            RULE_COHESION = '{{ ctx.RULE_TYPES.COHESION }}',
+            RULE_OBSTACLES = '{{ ctx.RULE_TYPES.OBSTACLES }}',
+            RULE_MAINTAIN = '{{ ctx.RULE_TYPES.MAINTAIN }}',
+            RULE_SEPARATION = '{{ ctx.RULE_TYPES.SEPARATION }}',
+
+            MAP_X = {{ ctx.MAP_X }},
+            MAP_Y = {{ ctx.MAP_Y }}
+        ;
+
+
+        const obstacles = [
+            {
+                'points': [
+                    {'x': 0, 'y': 0},
+                    {'x': 0, 'y': MAP_Y},
+                    {'x': MAP_X, 'y': MAP_Y},
+                    {'x': MAP_X, 'y': 0},
+                ],
+                'bounce': 1
+            }
+        ];
+
+        const boid_types = [DOG, SHEEP, WOLF];
+        const boid_colors = {
+            '{{ ctx.BOID_TYPES.SHEEP }}': '#FFFFFF',
+            '{{ ctx.BOID_TYPES.WOLF }}': '#000000',
+            '{{ ctx.BOID_TYPES.DOG }}': '#FF0000',
+        }
+        const boid_rules = {
+            '{{ ctx.BOID_TYPES.SHEEP }}': [
+                {'rule': RULE_MAINTAIN, 'weight': 50, 'target': SHEEP,},
+                {'rule': RULE_SEPARATION, 'weight': 60, 'max_dist': 16, 'target': SHEEP,},
+                {'rule': RULE_SEPARATION, 'weight': 1, 'max_dist': 120, 'target': SHEEP,},
+                {'rule': RULE_ALIGNMENT, 'weight': 9, 'max_dist': 80, 'target': SHEEP,},
+                {'rule': RULE_COHESION, 'weight': 3, 'max_dist': 48, 'target': SHEEP,},
+                {'rule': RULE_COHESION, 'weight': 0.5, 'max_dist': 128, 'target': SHEEP,},
+                {#{'rule': RULE_OBSTACLES, 'weight': 60, 'max_dist': 20, 'target': SHEEP,}#}
+            ],
+            '{{ ctx.BOID_TYPES.DOG }}': [
+                {'rule': RULE_MAINTAIN, 'weight': 50, 'target': DOG,},
+                {'rule': RULE_SEPARATION, 'weight': 60, 'max_dist': 16, 'target': DOG,},
+                {'rule': RULE_SEPARATION, 'weight': 1, 'max_dist': 120, 'target': DOG,},
+                {'rule': RULE_ALIGNMENT, 'weight': 9, 'max_dist': 80, 'target': DOG,},
+                {'rule': RULE_COHESION, 'weight': 3, 'max_dist': 48, 'target': DOG,},
+                {'rule': RULE_COHESION, 'weight': 0.5, 'max_dist': 128, 'target': DOG,},
+            ],
+            '{{ ctx.BOID_TYPES.WOLF }}': [
+                {'rule': RULE_MAINTAIN, 'weight': 50, 'target': WOLF,},
+                {'rule': RULE_SEPARATION, 'weight': 60, 'max_dist': 16, 'target': WOLF,},
+                {'rule': RULE_SEPARATION, 'weight': 1, 'max_dist': 120, 'target': WOLF,},
+                {'rule': RULE_ALIGNMENT, 'weight': 9, 'max_dist': 80, 'target': WOLF,},
+                {'rule': RULE_COHESION, 'weight': 3, 'max_dist': 48, 'target': WOLF,},
+                {'rule': RULE_COHESION, 'weight': 0.5, 'max_dist': 128, 'target': WOLF,},
+            ],
+        }
+
+        let img = new Image();
+        img.src = "{{ img }}";
+
         let boid_data = {
-            'boid': [
-                {'x': 100, 'y': 130, 'vx': 1212, 'vy': 3},
-                {'x': 400, 'y': 100, 'vx': 222, 'vy': 3},
-                {'x': 200, 'y': 122, 'vx': 1122, 'vy': 13},
-                {'x': 110, 'y': 140, 'vx': 2132, 'vy': 34},
-                {'x': 220, 'y': 100, 'vx': 11232, 'vy': 43},
-                {'x': 130, 'y': 180, 'vx': 2133, 'vy': 223},
-                {'x': 530, 'y': 780, 'vx': 2233, 'vy': 223},
-                {'x': 730, 'y': 380, 'vx': 2342, 'vy': 22312},
-                {'x': 830, 'y': 280, 'vx': 22131, 'vy': 221233},
-                {'x': 230, 'y': 580, 'vx': 21231, 'vy': 2233},
-                {'x': 230, 'y': 580, 'vx': 21231, 'vy': 2233},
-                {'x': 230, 'y': 580, 'vx': 21231, 'vy': 2223133},
-                {'x': 230, 'y': 580, 'vx': 21232311, 'vy': 2233},
-                {'x': 20, 'y': 580, 'vx': 21231, 'vy': 2233},
-                {'x': 150, 'y': 580, 'vx': 21231231, 'vy': 2233},
-                {'x': 530, 'y': 510, 'vx': 21231, 'vy': 2231233},
-                {'x': 250, 'y': 120, 'vx': 21223131, 'vy': 2233},
-                {'x': 290, 'y': 410, 'vx': 21231, 'vy': 2233},
-                {'x': 280, 'y': 170, 'vx': 21231231, 'vy': 2223133},
-                {'x': 220, 'y': 90, 'vx': 21231, 'vy': 2233},
-            ]
+            '{{ ctx.BOIDS }}': {},
+            '{{ ctx.OBSTACLES }}': obstacles
         };
+        for(let j = 0; j < boid_types.length; j++){
+            let rand_boids = Array(10);
+            for(let i = 0; i < rand_boids.length; i++){
+                rand_boids[i] = {
+                    x: MAP_X / 4 + Math.random() * MAP_X / 4,
+                    y: MAP_Y / 4 + Math.random() * MAP_Y / 4,
+                    vx: Math.random(),
+                    vy: Math.random(),
+                }
+            }
+            boid_data[BOIDS][boid_types[j]] = {
+                '{{ ctx.POSITIONS }}': rand_boids,
+                '{{ ctx.RULES }}': boid_rules[boid_types[j]],
+                '{{ ctx.COLOR }}': boid_colors[boid_types[j]],
+            }
+        }
+
         let scale = 32;
         let i_w = 512/scale,
             i_h = 512/scale;
@@ -64,28 +127,55 @@
                 run();
             }
         };
+        let stage = new Konva.Stage({
+            container: 'world',
+            width: {{ ctx.MAP_X }},
+            height: {{ ctx.MAP_Y }},
+        });
+        let layer = new Konva.Layer();
+        stage.add(layer);
+
+        extract_boid_data = function(boid){
+            let {x, y, vy, vx} = boid;
+            let angle = Math.atan2(vy, vx) * 180 / Math.PI;
+            return {
+                x: x,
+                y: y,
+                angle: angle,
+            }
+        };
+
+        let all_konva_images = Array(boid_types.length);
+        for(let j = 0; j < boid_types.length; j++) {
+            all_konva_images[j] = Array(boid_data[BOIDS][boid_types[j]][POSITIONS].length);
+            for (let i = 0; i < boid_data[BOIDS][boid_types[j]][POSITIONS].length; i++) {
+                let {x, y, angle} = extract_boid_data(boid_data[BOIDS][boid_types[j]][POSITIONS][i]);
+                all_konva_images[j][i] = new Konva.Image({
+                    x: x,
+                    y: y,
+                    offsetX: i_w / 2,
+                    offsetY: i_h / 2,
+                    image: img,
+                    width: i_w,
+                    height: i_h,
+                    rotation: angle,
+                    fill: boid_data[BOIDS][boid_types[j]][COLOR]
+                });
+                layer.add(all_konva_images[j][i]);
+            }
+        }
+
         animate = function(){
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for(let i = 0; i < boid_data['boid'].length; i++){
-                let x = Math.max(0, Math.min(Math.abs(Math.round(boid_data['boid'][i]['x'])), 820)),
-                    y = Math.max(0, Math.min(Math.abs(Math.round(boid_data['boid'][i]['y'])), 820)),
-                    vx = Math.round(boid_data['boid'][i]['vx'] * 100) / 100,
-                    vy = Math.round(boid_data['boid'][i]['vy'] * 100) / 100,
-                    dx = vx - x,
-                    dy = vy - y,
-                    rad = Math.atan2(dy, dx),
-                    angle = rad * (180/Math.PI);
-                boid_data['boid'][i]['x'] = x;
-                boid_data['boid'][i]['y'] = y;
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.translate(i_w, i_h);
-                ctx.rotate(angle);
-                ctx.drawImage(img, 0, 0, i_w, i_h);
-                ctx.rotate(-angle);
-                ctx.translate(-x, -y);
-                ctx.translate(-i_w, -i_h);
-                ctx.restore();
+            for(let j = 0; j < boid_types.length; j++) {
+                for (let i = 0; i < boid_data[BOIDS][boid_types[j]][POSITIONS].length; i++) {
+                    let {x, y, angle} = extract_boid_data(boid_data[BOIDS][boid_types[j]][POSITIONS][i]);
+                    all_konva_images[j][i].setAttrs({
+                        x: x,
+                        y: y,
+                        rotation: angle,
+                    });
+                    layer.batchDraw();
+                }
             }
         };
 

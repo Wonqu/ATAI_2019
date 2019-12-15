@@ -1,0 +1,36 @@
+BOIDS = 'boids'
+
+BOID_DOG = 'dog'
+BOID_SHEEP = 'sheep'
+BOID_WOLF = 'wolf'
+
+BOID_TYPES = {
+    'DOG': BOID_DOG,
+    'SHEEP': BOID_SHEEP,
+    'WOLF': BOID_WOLF,
+}
+
+COLOR = 'color'
+
+MAP_X = 1200
+MAP_Y = 800
+
+OBSTACLES = 'obs'
+
+POSITIONS = 'pos'
+
+RULE_ALIGNMENT = 'ali'
+RULE_COHESION = 'coh'
+RULE_MAINTAIN = 'main'
+RULE_OBSTACLES = 'obs'
+RULE_SEPARATION = 'sep'
+
+RULE_TYPES = {
+    'ALIGNMENT': RULE_ALIGNMENT,
+    'COHESION': RULE_COHESION,
+    'MAINTAIN': RULE_MAINTAIN,
+    'OBSTACLES': RULE_OBSTACLES,
+    'SEPARATION': RULE_SEPARATION,
+}
+
+RULES = 'rules'
