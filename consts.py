@@ -1,36 +1,14 @@
-BOIDS = 'boids'
+ALIGNMENT = 'alignment'
+CHECKPOINT = 'checkpoint'
+COHESION = 'cohesion'
+HUNT = 'hunt'
+MAINTENANCE = 'maintenance'
+OBSTACLES = 'obstacles'
+SEPARATION = 'separation'
+WALLS = 'walls'
 
-BOID_DOG = 'dog'
-BOID_SHEEP = 'sheep'
-BOID_WOLF = 'wolf'
 
-BOID_TYPES = {
-    'DOG': BOID_DOG,
-    'SHEEP': BOID_SHEEP,
-    'WOLF': BOID_WOLF,
-}
-
-COLOR = 'color'
-
-MAP_X = 1200
-MAP_Y = 800
-
-OBSTACLES = 'obs'
-
-POSITIONS = 'pos'
-
-RULE_ALIGNMENT = 'ali'
-RULE_COHESION = 'coh'
-RULE_MAINTAIN = 'main'
-RULE_OBSTACLES = 'obs'
-RULE_SEPARATION = 'sep'
-
-RULE_TYPES = {
-    'ALIGNMENT': RULE_ALIGNMENT,
-    'COHESION': RULE_COHESION,
-    'MAINTAIN': RULE_MAINTAIN,
-    'OBSTACLES': RULE_OBSTACLES,
-    'SEPARATION': RULE_SEPARATION,
-}
-
-RULES = 'rules'
+WIDTH = 1800
+HEIGHT = 900
+WALL_DISTANCE = 8
+OBSTACLE_DISTANCE = 12
