@@ -9,7 +9,7 @@ SHEEP_RULES = {
     consts.COHESION: 20,
     consts.SEPARATION: 3,
     consts.WALLS: 1000,
-    consts.CHECKPOINT: 5,
+    consts.CHECKPOINT: 20,
     consts.OBSTACLES: 100,
 }
 
@@ -23,10 +23,10 @@ SHEEP_DOG_RULES = {
 }
 
 DOG_RULES = {
-    consts.MAINTENANCE: 7,
-    consts.SEPARATION: 5,
+    consts.MAINTENANCE: 3,
+    consts.SEPARATION: 2,
     consts.WALLS: 1000,
-    consts.CHECKPOINT: 5,
+    consts.CHECKPOINT: 10,
     consts.OBSTACLES: 100,
 }
 
@@ -35,7 +35,7 @@ DOG_WOLF_RULES = {
 }
 
 DOG_SHEEP_RULES = {
-    consts.COHESION: 4,
+    consts.COHESION: 10,
     consts.SEPARATION: 5,
 }
 
@@ -67,6 +67,14 @@ sim_data_1 = {
                 (30, 33),
                 (22, 110),
                 (110, 44),
+                (115, 54),
+                (112, 24),
+                (110, 64),
+                (111, 14),
+                (12, 34),
+                (140, 24),
+                (80, 44),
+                (99, 122),
                 (90, 180),
                 (44, 90),
                 (36, 80),

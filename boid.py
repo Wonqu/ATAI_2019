@@ -8,6 +8,8 @@ class BaseBoid:
     SEPARATION_DISTANCES = {}
     HUNT_DISTANCES = {}
     ALIVE = True
+    DEAD = False
+    KILL_DIST = 5
 
     def __init__(self, idx, checkpoints):
         self.idx = idx
@@ -17,9 +19,13 @@ class BaseBoid:
             self._last_checkpoint = checkpoints[0]
         else:
             self._last_checkpoint = (0, 0)
+        self.alive = self.ALIVE
 
     def __repr__(self):
         return f'{self.__class__.__name__}[{self.idx}]'
+
+    def kill_dist(self, other):
+        return -1
 
     @property
     def checkpoint(self):
@@ -34,6 +40,9 @@ class BaseBoid:
         else:
             self.checkpoints = []
             self.checkpoint_idx = 0
+
+    def kill(self):
+        self.alive = self.DEAD
 
 
 class Sheep(BaseBoid):
@@ -65,6 +74,9 @@ class Wolf(BaseBoid):
             Sheep: 200,
         }
 
+    def kill_dist(self, other):
+        return self.KILL_DIST if isinstance(other, Sheep) else super().kill_dist(other)
+
 
 class Dog(BaseBoid):
     COLOR = arcade.color.BLUE
@@ -81,6 +93,9 @@ class Dog(BaseBoid):
         self.HUNT_DISTANCES = {
             Wolf: 200
         }
+
+    def kill_dist(self, other):
+        return self.KILL_DIST if isinstance(other, Wolf) else super().kill_dist(other)
 
 
 class Obstacle(BaseBoid):

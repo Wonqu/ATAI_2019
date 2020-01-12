@@ -6,7 +6,7 @@ import numpy as np
 import arcade
 
 import consts
-from boid import Sheep, Dog, Wolf
+from boid import Sheep, Dog, Wolf, BaseBoid
 from rules import rule_functions
 from simulations import simulation, sim_data_1
 
@@ -30,12 +30,13 @@ def draw(_delta_time):
 
     global state
     for boid in state['objects']:
-        arcade.draw_circle_filled(
-            state['boids_xy'][boid.idx].real,
-            state['boids_xy'][boid.idx].imag,
-            boid.SIZE,
-            boid.COLOR,
-        )
+        if boid.alive:
+            arcade.draw_circle_filled(
+                state['boids_xy'][boid.idx].real,
+                state['boids_xy'][boid.idx].imag,
+                boid.SIZE,
+                boid.COLOR,
+            )
 
     for obstacle in state['obstacles']:
         arcade.draw_circle_outline(
@@ -49,6 +50,13 @@ def draw(_delta_time):
 def update_coords():
     global state
 
+    life_matrix = np.array(
+        [
+            [b.alive for b in state['objects']]
+            for _ in state['objects']
+        ]
+    ).astype(float)
+
     for rule, fun in rule_functions.items():
         res = fun(
             state['boids_dxy'],
@@ -60,16 +68,19 @@ def update_coords():
             state['checkpoint_towards'],
             state['wall_dist'],
             state['wall_towards'],
+            state['objects'],
+            state['kill_dist'],
         )
-        res = (state['weights'][rule] * np.identity(state['weights'][rule].shape[0])) @ np.nan_to_num(res)
+        res = (state['weights'][rule] * life_matrix * np.identity(state['weights'][rule].shape[0])) @ np.nan_to_num(res)
         state['boids_dxy'] += res
 
     state['boids_dxy'] = np.nan_to_num(state['boids_dxy'] / np.absolute(state['boids_dxy']))
 
     state['boids_xy'] += state['boids_dxy'] * state['speed']
-    state['boids_towards'] = state['boids_xy'][..., np.newaxis] - state['boids_xy']
+    state['boids_towards'] = (state['boids_xy'][..., np.newaxis] - state['boids_xy']) * life_matrix
     MA = np.tile(state['boids_xy'][:, np.newaxis], state['boids_xy'].size)
-    state['boids_dist'] = abs(MA - MA.T)
+    state['boids_dist'] = abs(MA - MA.T) * (np.where(life_matrix == BaseBoid.ALIVE, life_matrix, 999999.0))
+    np.fill_diagonal(state['boids_dist'], float('inf'))
     state['obstacles_towards'] = np.array(state['boids_xy'][..., np.newaxis] - state['obstacles_xy'])
     state['obstacles_dist'] = abs(state['obstacles_towards'])
     state['checkpoint_xy'] = np.array([complex(*b.checkpoint) for b in state['objects']])
@@ -335,6 +346,7 @@ def main():
                     [sim['boids'][Wolf]['rules'][Wolf][consts.MAINTENANCE]] * len(sim['boids'][Wolf]['objects']),
                 )
             ]),
+            consts.KILL: np.zeros(boids_xy.shape[0]),
         },
         'speed': np.array([
             x for x in
@@ -345,6 +357,14 @@ def main():
             )
         ])
     }
+    state['kill_dist'] = np.array(
+        [
+            [
+                a.kill_dist(b)
+                for b in state['objects']
+            ] for a in state['objects']
+        ]
+    )
 
     # Open up our window
     arcade.open_window(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
